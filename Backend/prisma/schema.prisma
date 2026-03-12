@@ -1,0 +1,186 @@
+// ============================================================
+// Calendar X – Prisma Schema
+// Provider : MySQL
+// ORM      : Prisma 7
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USER
+// The account owner who logs in to Calendar X
+// ============================================================
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  connectedAccounts ConnectedAccount[]
+  boards            CalendarBoard[]
+
+  @@map("users")
+}
+
+// ============================================================
+// CONNECTED ACCOUNT
+// A linked Google or Microsoft OAuth account belonging to a User
+// One user can connect many accounts of either provider
+// ============================================================
+model ConnectedAccount {
+  id                String    @id @default(uuid())
+  userId            String
+  provider          Provider
+  providerAccountId String // unique ID from Google/Microsoft
+  email             String // email of the linked account
+  displayName       String?
+  accessToken       String    @db.Text
+  refreshToken      String?   @db.Text
+  tokenExpiresAt    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calendars Calendar[]
+
+  @@unique([userId, provider, providerAccountId])
+  @@map("connected_accounts")
+}
+
+// ============================================================
+// CALENDAR
+// An individual calendar pulled from a ConnectedAccount
+// e.g. "Work", "Personal", "Birthdays" inside a Google account
+// ============================================================
+model Calendar {
+  id                 String   @id @default(uuid())
+  connectedAccountId String
+  externalCalendarId String // ID assigned by Google/Microsoft
+  name               String
+  description        String?  @db.Text
+  timezone           String?
+  defaultColor       String? // hex color e.g. "#4285F4"
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  connectedAccount ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  events           Event[]
+  boardCalendars   BoardCalendar[]
+
+  @@unique([connectedAccountId, externalCalendarId])
+  @@map("calendars")
+}
+
+// ============================================================
+// EVENT
+// A single calendar event synced from Google / Microsoft
+// ============================================================
+model Event {
+  id          String   @id @default(uuid())
+  calendarId  String
+  externalId  String // ID from Google/Microsoft
+  title       String
+  description String?  @db.Text
+  location    String?
+  startTime   DateTime
+  endTime     DateTime
+  allDay      Boolean  @default(false)
+  status      String? // "confirmed" | "tentative" | "cancelled"
+  recurrence  String?  @db.Text // raw recurrence rule string (RRULE)
+  htmlLink    String?  @db.Text // link back to original event
+  syncedAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  calendar Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, externalId])
+  @@map("events")
+}
+
+// ============================================================
+// CALENDAR BOARD
+// A saved custom view created by the user
+// Selects which calendars to include + visibility rules
+// ============================================================
+model CalendarBoard {
+  id          String  @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+
+  // Event masking
+  maskEvents Boolean @default(false)
+  maskLabel  String? @default("Busy") // shown instead of real title when masked
+
+  // Date range visibility
+  showPastEvents  Boolean @default(true)
+  pastDaysLimit   Int? // how many days back to show (null = unlimited)
+  futureDaysLimit Int? // how many days ahead to show (null = unlimited)
+  onlyCurrentWeek Boolean @default(false)
+  twoWeeksAhead   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  boardCalendars BoardCalendar[]
+  sharedLink     SharedLink?
+
+  @@map("calendar_boards")
+}
+
+// ============================================================
+// BOARD CALENDAR (Junction)
+// Maps which calendars are included in a board
+// Also stores the per-board color override for that calendar
+// ============================================================
+model BoardCalendar {
+  id         String   @id @default(uuid())
+  boardId    String
+  calendarId String
+  color      String // hex color assigned to this calendar on this board
+  createdAt  DateTime @default(now())
+
+  board    CalendarBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  calendar Calendar      @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, calendarId])
+  @@map("board_calendars")
+}
+
+// ============================================================
+// SHARED LINK
+// A public URL token that maps to a specific CalendarBoard
+// Anyone with the token can view the live board – no auth needed
+// ============================================================
+model SharedLink {
+  id        String   @id @default(uuid())
+  boardId   String   @unique
+  token     String   @unique @default(uuid())
+  isActive  Boolean  @default(true)
+  viewCount Int      @default(0) // optional analytics counter
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board CalendarBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@map("shared_links")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+enum Provider {
+  google
+  microsoft
+}

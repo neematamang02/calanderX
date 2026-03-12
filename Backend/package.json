@@ -1,0 +1,52 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Calendar X Backend API",
+  "main": "dist/server.js",
+  "scripts": {
+    "postinstall": "prisma generate",
+    "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:prod": "prisma migrate deploy",
+    "prisma:studio": "prisma studio",
+    "prisma:push": "prisma db push",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "typecheck": "tsc --project tsconfig.json --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/msal-node": "^5.0.6",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@prisma/client": "^6.19.2",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "googleapis": "^171.4.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.19.1",
+    "node-fetch": "^3.3.2",
+    "uuid": "^13.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.4.0",
+    "@types/node-fetch": "^2.6.13",
+    "@types/uuid": "^10.0.0",
+    "nodemon": "^3.1.14",
+    "prisma": "^6.19.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
