@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { env } from "./config/env";
 import { notFound, errorHandler } from "./middleware/error.middleware";
+import authRoutes from "./routes/auth.routes";
 
 const app: Application = express();
 
@@ -43,10 +44,9 @@ app.get("/health", (_req: Request, res: Response) => {
 
 // ─────────────────────────────────────────────
 // API Routes
-// Will be uncommented as each module is built
 // ─────────────────────────────────────────────
 
-// app.use("/api/auth",     authRoutes);
+app.use("/auth/user", authRoutes);
 // app.use("/api/calendar", calendarRoutes);
 // app.use("/api/boards",   boardRoutes);
 // app.use("/api/share",    shareRoutes);
@@ -57,5 +57,4 @@ app.get("/health", (_req: Request, res: Response) => {
 
 app.use(notFound);
 app.use(errorHandler);
-
 export default app;
