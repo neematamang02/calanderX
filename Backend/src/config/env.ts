@@ -27,8 +27,10 @@ const envSchema = z.object({
   MICROSOFT_CLIENT_SECRET: z.string().optional(),
   MICROSOFT_REDIRECT_URI: z.string().optional(),
 
+  SERVER_URL: z.string().default("http://localhost:3001"),
   // Frontend
   CLIENT_URL: z.string().default("http://localhost:5173"),
+
 });
 
 const parsed = envSchema.safeParse(process.env);

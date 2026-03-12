@@ -44,6 +44,38 @@ export const UserResponseSchema = z.object({
 });
 
 // ============================================================
+// OAUTH SCHEMAS
+// ============================================================
+export const OAuthStateSchema = z.object({
+  userId: UuidSchema,
+  provider: ProviderSchema,
+  timestamp: z.number(),
+  nonce: z.string(),
+});
+
+export const OAuthCallbackSchema = z.object({
+  code: z.string().min(1, "Authorization code is required"),
+  state: z.string().min(1, "State parameter is required"),
+  error: z.string().optional(),
+  error_description: z.string().optional(),
+});
+
+export const OAuthTokenResponseSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string().optional(),
+  expires_in: z.number().optional(),
+  token_type: z.string().default("Bearer"),
+  scope: z.string().optional(),
+});
+
+export const OAuthUserInfoSchema = z.object({
+  id: z.string(),
+  email: EmailSchema,
+  name: z.string().optional(),
+  picture: z.string().url().optional(),
+});
+
+// ============================================================
 // CONNECTED ACCOUNT SCHEMAS
 // ============================================================
 export const ConnectedAccountCreateSchema = z.object({
@@ -296,7 +328,12 @@ export const ApiResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
 export type UserCreate = z.infer<typeof UserCreateSchema>;
 export type UserLogin = z.infer<typeof UserLoginSchema>;
 export type UserUpdate = z.infer<typeof UserUpdateSchema>;
-export type   UserResponse = z.infer<typeof UserResponseSchema>;
+export type UserResponse = z.infer<typeof UserResponseSchema>;
+
+export type OAuthState = z.infer<typeof OAuthStateSchema>;
+export type OAuthCallback = z.infer<typeof OAuthCallbackSchema>;
+export type OAuthTokenResponse = z.infer<typeof OAuthTokenResponseSchema>;
+export type OAuthUserInfo = z.infer<typeof OAuthUserInfoSchema>;
 
 export type ConnectedAccountCreate = z.infer<typeof ConnectedAccountCreateSchema>;
 export type ConnectedAccountResponse = z.infer<typeof ConnectedAccountResponseSchema>;

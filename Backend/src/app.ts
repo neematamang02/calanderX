@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { env } from "./config/env";
 import { notFound, errorHandler } from "./middleware/error.middleware";
 import authRoutes from "./routes/auth.routes";
+import oauthRoutes from "./routes/oauth.routes";
 
 const app: Application = express();
 
@@ -46,7 +47,8 @@ app.get("/health", (_req: Request, res: Response) => {
 // API Routes
 // ─────────────────────────────────────────────
 
-app.use("/auth/user", authRoutes);
+app.use("/user", authRoutes);
+app.use("/api/oauth", oauthRoutes);
 // app.use("/api/calendar", calendarRoutes);
 // app.use("/api/boards",   boardRoutes);
 // app.use("/api/share",    shareRoutes);
