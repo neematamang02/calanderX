@@ -100,6 +100,26 @@ export const ConnectedAccountResponseSchema = z.object({
 });
 
 // ============================================================
+// CALENDAR SYNC SCHEMAS
+// ============================================================
+export const CalendarSyncRequestSchema = z.object({
+  calendarIds: z.array(UuidSchema).min(1, "At least one calendar ID is required"),
+});
+
+export const EventSyncRequestSchema = z.object({
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+}).refine(data => {
+  if (data.startDate && data.endDate) {
+    return new Date(data.endDate) >= new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: "End date must be after or equal to start date",
+  path: ["endDate"]
+});
+
+// ============================================================
 // CALENDAR SCHEMAS
 // ============================================================
 export const CalendarCreateSchema = z.object({
@@ -241,7 +261,6 @@ export const CalendarBoardResponseSchema = z.object({
 // BOARD CALENDAR SCHEMAS
 // ============================================================
 export const BoardCalendarCreateSchema = z.object({
-  boardId: UuidSchema,
   calendarId: UuidSchema,
   color: HexColorSchema,
 });
@@ -301,6 +320,14 @@ export const DateRangeSchema = z.object({
 });
 
 // ============================================================
+// SYNC RESULT SCHEMAS
+// ============================================================
+export const SyncResultSchema = z.object({
+  calendars: z.array(CalendarResponseSchema),
+  events: z.array(EventResponseSchema),
+});
+
+// ============================================================
 // API RESPONSE SCHEMAS
 // ============================================================
 export const ApiSuccessResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
@@ -334,6 +361,10 @@ export type OAuthState = z.infer<typeof OAuthStateSchema>;
 export type OAuthCallback = z.infer<typeof OAuthCallbackSchema>;
 export type OAuthTokenResponse = z.infer<typeof OAuthTokenResponseSchema>;
 export type OAuthUserInfo = z.infer<typeof OAuthUserInfoSchema>;
+
+export type CalendarSyncRequest = z.infer<typeof CalendarSyncRequestSchema>;
+export type EventSyncRequest = z.infer<typeof EventSyncRequestSchema>;
+export type SyncResult = z.infer<typeof SyncResultSchema>;
 
 export type ConnectedAccountCreate = z.infer<typeof ConnectedAccountCreateSchema>;
 export type ConnectedAccountResponse = z.infer<typeof ConnectedAccountResponseSchema>;
