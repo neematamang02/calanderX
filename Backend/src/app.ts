@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes";
 import oauthRoutes from "./routes/oauth.routes";
 import calendarRoutes from "./routes/calendar.routes";
 import boardRoutes from "./routes/board.routes";
+import shareRoutes from "./routes/share.routes";
 
 const app: Application = express();
 
@@ -53,7 +54,7 @@ app.use("/user", authRoutes);
 app.use("/api/oauth", oauthRoutes);
 app.use("/api/calendars", calendarRoutes);
 app.use("/api/boards", boardRoutes);
-// app.use("/api/share",    shareRoutes);
+app.use("/api/share", shareRoutes);
 
 // ─────────────────────────────────────────────
 // Error Handling — must be registered LAST

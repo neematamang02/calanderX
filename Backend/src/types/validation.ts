@@ -298,6 +298,8 @@ export const SharedLinkResponseSchema = z.object({
   updatedAt: DateTimeSchema,
 });
 
+export const ShareTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/, "Invalid share token format");
+
 // ============================================================
 // QUERY PARAMETER SCHEMAS
 // ============================================================
@@ -388,6 +390,7 @@ export type BoardCalendarResponse = z.infer<typeof BoardCalendarResponseSchema>;
 export type SharedLinkCreate = z.infer<typeof SharedLinkCreateSchema>;
 export type SharedLinkUpdate = z.infer<typeof SharedLinkUpdateSchema>;
 export type SharedLinkResponse = z.infer<typeof SharedLinkResponseSchema>;
+export type ShareToken = z.infer<typeof ShareTokenSchema>;
 
 export type Pagination = z.infer<typeof PaginationSchema>;
 export type DateRange = z.infer<typeof DateRangeSchema>;
