@@ -3,14 +3,15 @@ import { ShareController } from "@/controllers/share.controller";
 import { authenticate } from "@/middleware/auth.middleware";
 import validateSchema from "@/middleware/validatezod";
 import { SharedLinkUpdateSchema } from "@/types/validation";
+import { publicShareRateLimit, apiRateLimit } from "@/middleware/rate-limit.middleware";
 
 const router = express.Router();
 
-// PUBLIC ROUTES (no authentication required)
-// These must come BEFORE the authenticate middleware
-router.get("/public/:token", ShareController.getSharedBoard);
+// PUBLIC ROUTES (no authentication required) - with strict rate limiting
+router.get("/public/:token", publicShareRateLimit, ShareController.getSharedBoard);
 
-// PROTECTED ROUTES (authentication required)
+// PROTECTED ROUTES (authentication required) - with general API rate limiting
+router.use(apiRateLimit);
 router.use(authenticate);
 
 // Shared link management for board owners

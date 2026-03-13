@@ -8,8 +8,12 @@ import {
   BoardCalendarCreateSchema,
   BoardCalendarUpdateSchema
 } from "@/types/validation";
+import { apiRateLimit } from "@/middleware/rate-limit.middleware";
 
 const router = express.Router();
+
+// Apply general API rate limiting
+router.use(apiRateLimit);
 
 // All board routes require authentication
 router.use(authenticate);

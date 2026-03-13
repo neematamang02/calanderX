@@ -3,8 +3,12 @@ import { CalendarController } from "@/controllers/calendar.controller";
 import { authenticate } from "@/middleware/auth.middleware";
 import validateSchema from "@/middleware/validatezod";
 import { CalendarSyncRequestSchema } from "@/types/validation";
+import { apiRateLimit } from "@/middleware/rate-limit.middleware";
 
 const router = express.Router();
+
+// Apply general API rate limiting
+router.use(apiRateLimit);
 
 // All calendar routes require authentication
 router.use(authenticate);

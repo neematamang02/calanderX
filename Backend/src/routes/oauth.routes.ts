@@ -1,8 +1,12 @@
 import express from "express";
 import { OAuthController } from "@/controllers/oauth.controller";
 import { authenticate } from "@/middleware/auth.middleware";
+import { oauthRateLimit } from "@/middleware/rate-limit.middleware";
 
 const router = express.Router();
+
+// Apply rate limiting to OAuth routes
+router.use(oauthRateLimit);
 
 // OAuth initiation routes (require authentication)
 router.get("/connect/:provider", authenticate, OAuthController.initiateOAuth);

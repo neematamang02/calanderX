@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import { CalendarService } from "@/services/calendar.service";
-import { EventSyncRequestSchema } from "@/types/validation";
+import { 
+  EventSyncRequestSchema,
+  CalendarPaginationSchema,
+  EventPaginationSchema
+} from "@/types/validation";
 import { JwtPayload } from "@/utils/jwt";
 import { prisma } from "@/utils/prisma";
 
@@ -11,7 +15,7 @@ interface AuthenticatedRequest extends Request {
 
 export class CalendarController {
   /**
-   * Get all calendars for authenticated user
+   * Get all calendars for authenticated user with pagination
    */
   static async getUserCalendars(req: Request, res: Response): Promise<void> {
     try {
@@ -24,11 +28,21 @@ export class CalendarController {
         return;
       }
 
-      const calendars = await CalendarService.getUserCalendars(authenticatedReq.user.userId);
+      // Parse pagination parameters
+      const pagination = CalendarPaginationSchema.parse({
+        page: req.query.page,
+        limit: req.query.limit,
+      });
+
+      const result = await CalendarService.getUserCalendars(
+        authenticatedReq.user.userId,
+        pagination
+      );
       
       res.json({
         success: true,
-        data: calendars,
+        data: result.data,
+        pagination: result.pagination,
         message: "Calendars retrieved successfully"
       });
     } catch (error) {
@@ -40,7 +54,7 @@ export class CalendarController {
   }
 
   /**
-   * Get events for specific calendars
+   * Get events for specific calendars with pagination
    */
   static async getCalendarEvents(req: Request, res: Response): Promise<void> {
     try {
@@ -55,6 +69,12 @@ export class CalendarController {
 
       // Request body is already validated by middleware
       const { calendarIds } = req.body;
+
+      // Parse pagination parameters
+      const pagination = EventPaginationSchema.parse({
+        page: req.query.page,
+        limit: req.query.limit,
+      });
 
       // Validate date range if provided
       let dateRange;
@@ -79,15 +99,17 @@ export class CalendarController {
         }
       }
 
-      const events = await CalendarService.getCalendarEvents(
+      const result = await CalendarService.getCalendarEvents(
         calendarIds,
         dateRange?.start,
-        dateRange?.end
+        dateRange?.end,
+        pagination
       );
       
       res.json({
         success: true,
-        data: events,
+        data: result.data,
+        pagination: result.pagination,
         message: "Events retrieved successfully"
       });
     } catch (error) {

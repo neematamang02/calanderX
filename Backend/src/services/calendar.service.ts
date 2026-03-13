@@ -3,8 +3,23 @@ import {
   CalendarResponse, 
   EventResponse, 
   SyncResult,
-  Provider 
+  Provider,
+  CalendarPagination,
+  EventPagination
 } from "@/types/validation";
+import { TokenRefreshService } from "@/middleware/token-refresh.middleware";
+
+interface PaginatedResult<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
 
 interface GoogleCalendar {
   id: string;
@@ -66,9 +81,26 @@ interface MicrosoftEvent {
 
 export class CalendarService {
   /**
-   * Get all calendars for a user
+   * Get all calendars for a user with pagination
    */
-  static async getUserCalendars(userId: string): Promise<CalendarResponse[]> {
+  static async getUserCalendars(
+    userId: string,
+    pagination?: CalendarPagination
+  ): Promise<PaginatedResult<CalendarResponse>> {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 10;
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const total = await prisma.calendar.count({
+      where: {
+        connectedAccount: {
+          userId,
+        },
+      },
+    });
+
+    // Get paginated calendars
     const calendars = await prisma.calendar.findMany({
       where: {
         connectedAccount: {
@@ -81,9 +113,13 @@ export class CalendarService {
       orderBy: {
         createdAt: 'desc',
       },
+      skip,
+      take: limit,
     });
 
-    return calendars.map(calendar => ({
+    const totalPages = Math.ceil(total / limit);
+
+    const calendarResponses: CalendarResponse[] = calendars.map(calendar => ({
       id: calendar.id,
       connectedAccountId: calendar.connectedAccountId,
       externalCalendarId: calendar.externalCalendarId,
@@ -95,16 +131,33 @@ export class CalendarService {
       createdAt: calendar.createdAt,
       updatedAt: calendar.updatedAt,
     }));
+
+    return {
+      data: calendarResponses,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   }
 
   /**
-   * Get events for specific calendars within date range
+   * Get events for specific calendars within date range with pagination
    */
   static async getCalendarEvents(
     calendarIds: string[],
     startDate?: Date,
-    endDate?: Date
-  ): Promise<EventResponse[]> {
+    endDate?: Date,
+    pagination?: EventPagination
+  ): Promise<PaginatedResult<EventResponse>> {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 50;
+    const skip = (page - 1) * limit;
+
     const whereClause: any = {
       calendarId: {
         in: calendarIds,
@@ -131,14 +184,24 @@ export class CalendarService {
       }
     }
 
+    // Get total count
+    const total = await prisma.event.count({
+      where: whereClause,
+    });
+
+    // Get paginated events
     const events = await prisma.event.findMany({
       where: whereClause,
       orderBy: {
         startTime: 'asc',
       },
+      skip,
+      take: limit,
     });
 
-    return events.map(event => ({
+    const totalPages = Math.ceil(total / limit);
+
+    const eventResponses: EventResponse[] = events.map(event => ({
       id: event.id,
       calendarId: event.calendarId,
       externalId: event.externalId,
@@ -154,6 +217,18 @@ export class CalendarService {
       syncedAt: event.syncedAt,
       updatedAt: event.updatedAt,
     }));
+
+    return {
+      data: eventResponses,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    };
   }
 
   /**
@@ -197,22 +272,27 @@ export class CalendarService {
   }
 
   /**
-   * Sync Google calendars
+   * Sync Google calendars with automatic token refresh
    */
   private static async syncGoogleCalendars(account: any): Promise<CalendarResponse[]> {
-    const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-      headers: {
-        'Authorization': `Bearer ${account.accessToken}`,
-        'Accept': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch Google calendars: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json() as { items: GoogleCalendar[] };
     const calendars: CalendarResponse[] = [];
+    
+    const apiCall = async (accessToken: string) => {
+      const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Google calendars: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json() as { items: GoogleCalendar[] };
+    };
+
+    const data = await TokenRefreshService.executeWithTokenRefresh(account.id, apiCall);
     
     for (const googleCalendar of data.items) {
       const calendar = await prisma.calendar.upsert({

@@ -308,6 +308,16 @@ export const PaginationSchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
 
+export const CalendarPaginationSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(50).default(10), // Smaller limit for calendars
+});
+
+export const EventPaginationSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(200).default(50), // Larger limit for events
+});
+
 export const DateRangeSchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
@@ -332,6 +342,21 @@ export const SyncResultSchema = z.object({
 // ============================================================
 // API RESPONSE SCHEMAS
 // ============================================================
+export const PaginatedResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.object({
+    success: z.literal(true),
+    data: z.array(dataSchema),
+    pagination: z.object({
+      page: z.number(),
+      limit: z.number(),
+      total: z.number(),
+      totalPages: z.number(),
+      hasNext: z.boolean(),
+      hasPrev: z.boolean(),
+    }),
+    message: z.string().optional(),
+  });
+
 export const ApiSuccessResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
   z.object({
     success: z.literal(true),
@@ -367,6 +392,8 @@ export type OAuthUserInfo = z.infer<typeof OAuthUserInfoSchema>;
 export type CalendarSyncRequest = z.infer<typeof CalendarSyncRequestSchema>;
 export type EventSyncRequest = z.infer<typeof EventSyncRequestSchema>;
 export type SyncResult = z.infer<typeof SyncResultSchema>;
+export type CalendarPagination = z.infer<typeof CalendarPaginationSchema>;
+export type EventPagination = z.infer<typeof EventPaginationSchema>;
 
 export type ConnectedAccountCreate = z.infer<typeof ConnectedAccountCreateSchema>;
 export type ConnectedAccountResponse = z.infer<typeof ConnectedAccountResponseSchema>;
