@@ -50,7 +50,7 @@ app.get("/health", (_req: Request, res: Response) => {
 // API Routes
 // ─────────────────────────────────────────────
 
-app.use("/user", authRoutes);
+app.use("/api/user", authRoutes);
 app.use("/api/oauth", oauthRoutes);
 app.use("/api/calendars", calendarRoutes);
 app.use("/api/boards", boardRoutes);
