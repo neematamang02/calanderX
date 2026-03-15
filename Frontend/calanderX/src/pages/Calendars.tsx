@@ -18,8 +18,8 @@ import { Modal } from '../components/ui/Modal';
 export const Calendars: React.FC = () => {
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   
-  const { data: accountsResponse, isLoading: accountsLoading } = useConnectedAccounts();
-  const { data: calendarsResponse, isLoading: calendarsLoading } = useCalendars();
+  const { data: accountsResponse, isLoading: accountsLoading, refetch: refetchAccounts } = useConnectedAccounts();
+  const { data: calendarsResponse, isLoading: calendarsLoading, refetch: refetchCalendars } = useCalendars();
   const initiateOAuthMutation = useInitiateOAuth();
   const disconnectAccountMutation = useDisconnectAccount();
   const syncAccountMutation = useSyncAccountCalendars();
@@ -27,6 +27,12 @@ export const Calendars: React.FC = () => {
 
   const accounts = accountsResponse?.data || [];
   const calendars = calendarsResponse?.data || [];
+
+  // Auto-refresh data when component mounts (useful after OAuth redirect)
+  React.useEffect(() => {
+    refetchAccounts();
+    refetchCalendars();
+  }, [refetchAccounts, refetchCalendars]);
 
   const handleConnectAccount = (provider: 'google' | 'microsoft') => {
     initiateOAuthMutation.mutate(provider);
@@ -154,11 +160,15 @@ export const Calendars: React.FC = () => {
                         size="sm"
                         onClick={() => handleSyncAccount(account.id)}
                         disabled={syncAccountMutation.isPending}
+                        title="Sync calendars from this account"
                       >
                         {syncAccountMutation.isPending ? (
                           <LoadingSpinner size="sm" />
                         ) : (
-                          <RefreshCw className="h-4 w-4" />
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Sync
+                          </>
                         )}
                       </Button>
                       

@@ -261,7 +261,10 @@ export class BoardService {
     }
 
     const boardCalendar = await prisma.boardCalendar.create({
-      data: calendarData,
+      data: {
+        boardId,
+        ...calendarData,
+      },
     });
 
     return {

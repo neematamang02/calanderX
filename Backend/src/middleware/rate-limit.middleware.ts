@@ -1,17 +1,21 @@
 import rateLimit from 'express-rate-limit';
+import { env } from '@/config/env';
 
 /**
  * Rate limiting configurations for different endpoints
  */
 
+// Development mode - more lenient rate limits
+const isDevelopment = env.NODE_ENV === 'development';
+
 // Strict rate limiting for authentication endpoints
 export const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
+  windowMs: isDevelopment ? 5 * 60 * 1000 : 15 * 60 * 1000, // 5 min dev, 15 min prod
+  max: isDevelopment ? 20 : 5, // 20 dev, 5 prod
   message: {
     success: false,
     error: 'Too many authentication attempts, please try again later',
-    retryAfter: '15 minutes'
+    retryAfter: isDevelopment ? '5 minutes' : '15 minutes'
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
@@ -21,12 +25,12 @@ export const authRateLimit = rateLimit({
 
 // Moderate rate limiting for OAuth endpoints
 export const oauthRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 requests per windowMs
+  windowMs: isDevelopment ? 2 * 60 * 1000 : 5 * 60 * 1000, // 2 min dev, 5 min prod
+  max: isDevelopment ? 100 : 50, // 100 dev, 50 prod
   message: {
     success: false,
-    error: 'Too many OAuth requests, please try again later',
-    retryAfter: '15 minutes'
+    error: 'Rate limit exceeded. Please try again later.',
+    retryAfter: isDevelopment ? '2 minutes' : '5 minutes'
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -34,12 +38,12 @@ export const oauthRateLimit = rateLimit({
 
 // General API rate limiting
 export const apiRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: isDevelopment ? 2 * 60 * 1000 : 5 * 60 * 1000, // 2 min dev, 5 min prod
+  max: isDevelopment ? 500 : 200, // 500 dev, 200 prod
   message: {
     success: false,
-    error: 'Too many API requests, please try again later',
-    retryAfter: '15 minutes'
+    error: 'Rate limit exceeded. Please try again later.',
+    retryAfter: isDevelopment ? '2 minutes' : '5 minutes'
   },
   standardHeaders: true,
   legacyHeaders: false,

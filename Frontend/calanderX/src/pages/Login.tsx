@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { Calendar, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import React, { useState } from "react";
+import { isAxiosError } from "axios";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { Calendar, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/Card";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 interface LoginForm {
   email: string;
@@ -16,13 +23,13 @@ interface LoginForm {
 const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  const from = location.state?.from?.pathname || '/dashboard';
+
+  const from = location.state?.from?.pathname || "/dashboard";
 
   const {
     register,
@@ -33,12 +40,16 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginForm) => {
     try {
       setIsLoading(true);
-      setError('');
-      
+      setError("");
+
       await login(data.email, data.password);
       navigate(from, { replace: true });
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+    } catch (err: unknown) {
+      if (isAxiosError(err) && typeof err.response?.data?.error === "string") {
+        setError(err.response.data.error);
+      } else {
+        setError("Login failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +67,7 @@ const Login: React.FC = () => {
             Sign in to CalendarX
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Or{' '}
+            Or{" "}
             <Link
               to="/register"
               className="font-medium text-blue-600 hover:text-blue-500"
@@ -87,11 +98,11 @@ const Login: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 error={errors.email?.message}
-                {...register('email', {
-                  required: 'Email is required',
+                {...register("email", {
+                  required: "Email is required",
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address',
+                    message: "Invalid email address",
                   },
                 })}
               />
@@ -99,11 +110,11 @@ const Login: React.FC = () => {
               <div className="relative">
                 <Input
                   label="Password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   error={errors.password?.message}
-                  {...register('password', {
-                    required: 'Password is required',
+                  {...register("password", {
+                    required: "Password is required",
                   })}
                 />
                 <button
@@ -119,18 +130,14 @@ const Login: React.FC = () => {
                 </button>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <LoadingSpinner size="sm" className="mr-2" />
                     Signing in...
                   </>
                 ) : (
-                  'Sign in'
+                  "Sign in"
                 )}
               </Button>
             </form>
@@ -140,8 +147,11 @@ const Login: React.FC = () => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            Forgot your password?{' '}
-            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+            Forgot your password?{" "}
+            <a
+              href="#"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               Reset it here
             </a>
           </p>

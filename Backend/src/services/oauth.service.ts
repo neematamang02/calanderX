@@ -78,6 +78,15 @@ export class OAuthService {
       tokens
     );
 
+    // Automatically sync calendars after successful connection
+    try {
+      const { CalendarService } = await import('./calendar.service');
+      await CalendarService.syncCalendarsForAccount(connectedAccount.id);
+    } catch (syncError) {
+      // Log the error but don't fail the OAuth process
+      console.error('Failed to auto-sync calendars after OAuth:', syncError);
+    }
+
     return connectedAccount;
   }
 

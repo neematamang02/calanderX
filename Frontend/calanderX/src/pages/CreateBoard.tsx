@@ -1,35 +1,57 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { ArrowLeft, Calendar, Plus, X } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useForm, useWatch } from "react-hook-form";
+import { ArrowLeft, Calendar, Plus, X } from "lucide-react";
 import {
   useCreateBoard,
   useCalendars,
-} from '../hooks/useApi';
-import type { CreateBoardRequest } from '../types/api';
-import { Layout } from '../components/layout/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { LoadingState } from '../components/ui/LoadingSpinner';
+  useAddCalendarToBoard,
+} from "../hooks/useApi";
+import type {
+  CreateBoardRequest,
+  Calendar as CalendarType,
+} from "../types/api";
+import { Layout } from "../components/layout/Layout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/Card";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import { LoadingState } from "../components/ui/LoadingSpinner";
 
-interface BoardForm extends CreateBoardRequest {}
+type BoardForm = CreateBoardRequest;
 
 const colorOptions = [
-  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
-  '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+  "#3B82F6",
+  "#EF4444",
+  "#10B981",
+  "#F59E0B",
+  "#8B5CF6",
+  "#EC4899",
+  "#06B6D4",
+  "#84CC16",
+  "#F97316",
+  "#6366F1",
 ];
 
 export const CreateBoard: React.FC = () => {
-  const [selectedCalendars, setSelectedCalendars] = useState<Array<{
-    id: string;
-    name: string;
-    color: string;
-  }>>([]);
-  
+  const [selectedCalendars, setSelectedCalendars] = useState<
+    Array<{
+      id: string;
+      name: string;
+      color: string;
+    }>
+  >([]);
+
   const navigate = useNavigate();
-  const { data: calendarsResponse, isLoading: calendarsLoading } = useCalendars();
+  const { data: calendarsResponse, isLoading: calendarsLoading } =
+    useCalendars();
   const createBoardMutation = useCreateBoard();
+  const addCalendarMutation = useAddCalendarToBoard();
 
   const calendars = calendarsResponse?.data || [];
 
@@ -37,7 +59,7 @@ export const CreateBoard: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
+    control,
   } = useForm<BoardForm>({
     defaultValues: {
       maskEvents: false,
@@ -47,17 +69,17 @@ export const CreateBoard: React.FC = () => {
     },
   });
 
-  const maskEvents = watch('maskEvents');
+  const maskEvents = useWatch({ control, name: "maskEvents" });
 
-  const handleAddCalendar = (calendar: any) => {
-    if (selectedCalendars.find(c => c.id === calendar.id)) return;
-    
+  const handleAddCalendar = (calendar: CalendarType) => {
+    if (selectedCalendars.find((c) => c.id === calendar.id)) return;
+
     const availableColors = colorOptions.filter(
-      color => !selectedCalendars.some(c => c.color === color)
+      (color) => !selectedCalendars.some((c) => c.color === color),
     );
-    
+
     const color = availableColors[0] || colorOptions[0];
-    
+
     setSelectedCalendars([
       ...selectedCalendars,
       {
@@ -69,31 +91,41 @@ export const CreateBoard: React.FC = () => {
   };
 
   const handleRemoveCalendar = (calendarId: string) => {
-    setSelectedCalendars(selectedCalendars.filter(c => c.id !== calendarId));
+    setSelectedCalendars(selectedCalendars.filter((c) => c.id !== calendarId));
   };
 
   const handleColorChange = (calendarId: string, color: string) => {
     setSelectedCalendars(
-      selectedCalendars.map(c =>
-        c.id === calendarId ? { ...c, color } : c
-      )
+      selectedCalendars.map((c) => (c.id === calendarId ? { ...c, color } : c)),
     );
   };
 
   const onSubmit = async (data: BoardForm) => {
     try {
       const response = await createBoardMutation.mutateAsync(data);
-      
+
       if (response.success && response.data) {
+        const boardId = response.data.id;
+
         // Add selected calendars to the board
-        // Note: This would be implemented with actual API calls
-        // for (const calendar of selectedCalendars) {
-        //   // Add calendar to board logic here
-        // }
-        
-        navigate(`/boards/${response.data.id}`);
+        if (selectedCalendars.length > 0) {
+          const addCalendarPromises = selectedCalendars.map((calendar) =>
+            addCalendarMutation.mutateAsync({
+              boardId,
+              data: {
+                calendarId: calendar.id,
+                color: calendar.color,
+              },
+            }),
+          );
+
+          // Wait for all calendars to be added
+          await Promise.all(addCalendarPromises);
+        }
+
+        navigate(`/boards/${boardId}`);
       }
-    } catch (error) {
+    } catch {
       // Error is handled by the mutation
     }
   };
@@ -111,16 +143,15 @@ export const CreateBoard: React.FC = () => {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/boards')}
-          >
+          <Button variant="ghost" onClick={() => navigate("/boards")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Boards
           </Button>
-          
+
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Create New Board</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Create New Board
+            </h1>
             <p className="mt-2 text-gray-600">
               Set up a custom calendar view with your preferred settings
             </p>
@@ -140,22 +171,24 @@ export const CreateBoard: React.FC = () => {
               <Input
                 label="Board Name"
                 error={errors.name?.message}
-                {...register('name', {
-                  required: 'Board name is required',
+                {...register("name", {
+                  required: "Board name is required",
                   minLength: {
                     value: 2,
-                    message: 'Name must be at least 2 characters',
+                    message: "Name must be at least 2 characters",
                   },
                 })}
               />
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Description (Optional)</label>
+                <label className="text-sm font-medium">
+                  Description (Optional)
+                </label>
                 <textarea
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
                   placeholder="Describe what this board is for..."
-                  {...register('description')}
+                  {...register("description")}
                 />
               </div>
             </CardContent>
@@ -175,19 +208,19 @@ export const CreateBoard: React.FC = () => {
                   type="checkbox"
                   id="maskEvents"
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  {...register('maskEvents')}
+                  {...register("maskEvents")}
                 />
                 <label htmlFor="maskEvents" className="text-sm font-medium">
                   Mask event details
                 </label>
               </div>
-              
+
               {maskEvents && (
                 <Input
                   label="Mask Label"
                   placeholder="Busy"
                   helperText="Text to show instead of event titles"
-                  {...register('maskLabel')}
+                  {...register("maskLabel")}
                 />
               )}
             </CardContent>
@@ -208,9 +241,12 @@ export const CreateBoard: React.FC = () => {
                     type="checkbox"
                     id="showPastEvents"
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    {...register('showPastEvents')}
+                    {...register("showPastEvents")}
                   />
-                  <label htmlFor="showPastEvents" className="text-sm font-medium">
+                  <label
+                    htmlFor="showPastEvents"
+                    className="text-sm font-medium"
+                  >
                     Show past events
                   </label>
                 </div>
@@ -220,9 +256,12 @@ export const CreateBoard: React.FC = () => {
                     type="checkbox"
                     id="onlyCurrentWeek"
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    {...register('onlyCurrentWeek')}
+                    {...register("onlyCurrentWeek")}
                   />
-                  <label htmlFor="onlyCurrentWeek" className="text-sm font-medium">
+                  <label
+                    htmlFor="onlyCurrentWeek"
+                    className="text-sm font-medium"
+                  >
                     Current week only
                   </label>
                 </div>
@@ -232,9 +271,12 @@ export const CreateBoard: React.FC = () => {
                     type="checkbox"
                     id="twoWeeksAhead"
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    {...register('twoWeeksAhead')}
+                    {...register("twoWeeksAhead")}
                   />
-                  <label htmlFor="twoWeeksAhead" className="text-sm font-medium">
+                  <label
+                    htmlFor="twoWeeksAhead"
+                    className="text-sm font-medium"
+                  >
                     Limit to 2 weeks ahead
                   </label>
                 </div>
@@ -246,9 +288,9 @@ export const CreateBoard: React.FC = () => {
                   type="number"
                   placeholder="30"
                   helperText="How many days back to show (leave empty for unlimited)"
-                  {...register('pastDaysLimit', {
+                  {...register("pastDaysLimit", {
                     valueAsNumber: true,
-                    min: { value: 1, message: 'Must be at least 1 day' },
+                    min: { value: 1, message: "Must be at least 1 day" },
                   })}
                 />
 
@@ -257,9 +299,9 @@ export const CreateBoard: React.FC = () => {
                   type="number"
                   placeholder="90"
                   helperText="How many days ahead to show (leave empty for unlimited)"
-                  {...register('futureDaysLimit', {
+                  {...register("futureDaysLimit", {
                     valueAsNumber: true,
-                    min: { value: 1, message: 'Must be at least 1 day' },
+                    min: { value: 1, message: "Must be at least 1 day" },
                   })}
                 />
               </div>
@@ -281,7 +323,8 @@ export const CreateBoard: React.FC = () => {
                   <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">No calendars available</p>
                   <p className="text-sm text-gray-400">
-                    Connect a calendar account first to add calendars to your board
+                    Connect a calendar account first to add calendars to your
+                    board
                   </p>
                 </div>
               ) : (
@@ -290,7 +333,12 @@ export const CreateBoard: React.FC = () => {
                     <h4 className="font-medium mb-3">Available Calendars</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {calendars
-                        .filter(calendar => !selectedCalendars.find(c => c.id === calendar.id))
+                        .filter(
+                          (calendar) =>
+                            !selectedCalendars.find(
+                              (c) => c.id === calendar.id,
+                            ),
+                        )
                         .map((calendar) => (
                           <div
                             key={calendar.id}
@@ -299,9 +347,14 @@ export const CreateBoard: React.FC = () => {
                             <div className="flex items-center space-x-3">
                               <div
                                 className="w-4 h-4 rounded-full border"
-                                style={{ backgroundColor: calendar.defaultColor || '#3B82F6' }}
+                                style={{
+                                  backgroundColor:
+                                    calendar.defaultColor || "#3B82F6",
+                                }}
                               />
-                              <span className="font-medium">{calendar.name}</span>
+                              <span className="font-medium">
+                                {calendar.name}
+                              </span>
                             </div>
                             <Button
                               type="button"
@@ -319,7 +372,9 @@ export const CreateBoard: React.FC = () => {
                   {/* Selected Calendars */}
                   {selectedCalendars.length > 0 && (
                     <div>
-                      <h4 className="font-medium mb-3">Selected Calendars ({selectedCalendars.length})</h4>
+                      <h4 className="font-medium mb-3">
+                        Selected Calendars ({selectedCalendars.length})
+                      </h4>
                       <div className="space-y-3">
                         {selectedCalendars.map((calendar) => (
                           <div
@@ -331,9 +386,11 @@ export const CreateBoard: React.FC = () => {
                                 className="w-4 h-4 rounded-full border"
                                 style={{ backgroundColor: calendar.color }}
                               />
-                              <span className="font-medium">{calendar.name}</span>
+                              <span className="font-medium">
+                                {calendar.name}
+                              </span>
                             </div>
-                            
+
                             <div className="flex items-center space-x-2">
                               {/* Color Picker */}
                               <div className="flex space-x-1">
@@ -343,20 +400,24 @@ export const CreateBoard: React.FC = () => {
                                     type="button"
                                     className={`w-6 h-6 rounded-full border-2 ${
                                       calendar.color === color
-                                        ? 'border-gray-800'
-                                        : 'border-gray-300'
+                                        ? "border-gray-800"
+                                        : "border-gray-300"
                                     }`}
                                     style={{ backgroundColor: color }}
-                                    onClick={() => handleColorChange(calendar.id, color)}
+                                    onClick={() =>
+                                      handleColorChange(calendar.id, color)
+                                    }
                                   />
                                 ))}
                               </div>
-                              
+
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRemoveCalendar(calendar.id)}
+                                onClick={() =>
+                                  handleRemoveCalendar(calendar.id)
+                                }
                               >
                                 <X className="h-4 w-4" />
                               </Button>
@@ -376,15 +437,12 @@ export const CreateBoard: React.FC = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/boards')}
+              onClick={() => navigate("/boards")}
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={createBoardMutation.isPending}
-            >
-              {createBoardMutation.isPending ? 'Creating...' : 'Create Board'}
+            <Button type="submit" disabled={createBoardMutation.isPending}>
+              {createBoardMutation.isPending ? "Creating..." : "Create Board"}
             </Button>
           </div>
         </form>

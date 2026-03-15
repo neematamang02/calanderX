@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { Calendar, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import React, { useState } from "react";
+import { isAxiosError } from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { Calendar, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/Card";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 interface RegisterForm {
   name: string;
@@ -19,8 +26,8 @@ export const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
 
@@ -31,17 +38,21 @@ export const Register: React.FC = () => {
     formState: { errors },
   } = useForm<RegisterForm>();
 
-  const password = watch('password');
+  const password = watch("password");
 
   const onSubmit = async (data: RegisterForm) => {
     try {
       setIsLoading(true);
-      setError('');
-      
+      setError("");
+
       await registerUser(data.email, data.password, data.name);
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      if (isAxiosError(err) && typeof err.response?.data?.error === "string") {
+        setError(err.response.data.error);
+      } else {
+        setError("Registration failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +70,7 @@ export const Register: React.FC = () => {
             Create your CalendarX account
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link
               to="/login"
               className="font-medium text-blue-600 hover:text-blue-500"
@@ -90,11 +101,11 @@ export const Register: React.FC = () => {
                 type="text"
                 autoComplete="name"
                 error={errors.name?.message}
-                {...register('name', {
-                  required: 'Name is required',
+                {...register("name", {
+                  required: "Name is required",
                   minLength: {
                     value: 2,
-                    message: 'Name must be at least 2 characters',
+                    message: "Name must be at least 2 characters",
                   },
                 })}
               />
@@ -104,11 +115,11 @@ export const Register: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 error={errors.email?.message}
-                {...register('email', {
-                  required: 'Email is required',
+                {...register("email", {
+                  required: "Email is required",
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address',
+                    message: "Invalid email address",
                   },
                 })}
               />
@@ -116,15 +127,15 @@ export const Register: React.FC = () => {
               <div className="relative">
                 <Input
                   label="Password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   error={errors.password?.message}
                   helperText="Must be at least 8 characters long"
-                  {...register('password', {
-                    required: 'Password is required',
+                  {...register("password", {
+                    required: "Password is required",
                     minLength: {
                       value: 8,
-                      message: 'Password must be at least 8 characters',
+                      message: "Password must be at least 8 characters",
                     },
                   })}
                 />
@@ -144,13 +155,13 @@ export const Register: React.FC = () => {
               <div className="relative">
                 <Input
                   label="Confirm password"
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? "text" : "password"}
                   autoComplete="new-password"
                   error={errors.confirmPassword?.message}
-                  {...register('confirmPassword', {
-                    required: 'Please confirm your password',
+                  {...register("confirmPassword", {
+                    required: "Please confirm your password",
                     validate: (value: string) =>
-                      value === password || 'Passwords do not match',
+                      value === password || "Passwords do not match",
                   })}
                 />
                 <button
@@ -166,18 +177,14 @@ export const Register: React.FC = () => {
                 </button>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <LoadingSpinner size="sm" className="mr-2" />
                     Creating account...
                   </>
                 ) : (
-                  'Create account'
+                  "Create account"
                 )}
               </Button>
             </form>
@@ -187,12 +194,18 @@ export const Register: React.FC = () => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            By creating an account, you agree to our{' '}
-            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+            By creating an account, you agree to our{" "}
+            <a
+              href="#"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               Terms of Service
-            </a>{' '}
-            and{' '}
-            <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+            </a>{" "}
+            and{" "}
+            <a
+              href="#"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               Privacy Policy
             </a>
           </p>

@@ -1,12 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { toast } from "react-toastify";
 import {
   authApi,
   oauthApi,
   calendarApi,
   boardApi,
   shareApi,
-} from '../services/api';
+} from "../services/api";
 import type {
   LoginRequest,
   RegisterRequest,
@@ -18,28 +19,51 @@ import type {
   PaginationParams,
   DateRangeParams,
   CalendarEventsParams,
-} from '../types/api';
+} from "../types/api";
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (isAxiosError(error)) {
+    const responseError = error.response?.data?.error;
+    if (typeof responseError === "string" && responseError.trim().length > 0) {
+      return responseError;
+    }
+  }
+
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 // Query Keys
 export const queryKeys = {
-  connectedAccounts: ['connectedAccounts'],
-  calendars: (params?: PaginationParams) => ['calendars', params],
-  calendarEvents: (params: CalendarEventsParams) => ['calendarEvents', params],
-  boards: ['boards'],
-  board: (id: string) => ['board', id],
-  boardEvents: (id: string, params?: DateRangeParams) => ['boardEvents', id, params],
-  sharedLinks: ['sharedLinks'],
-  sharedLink: (boardId: string) => ['sharedLink', boardId],
-  sharedLinkAnalytics: (boardId: string) => ['sharedLinkAnalytics', boardId],
-  publicBoard: (token: string, params?: DateRangeParams) => ['publicBoard', token, params],
+  connectedAccounts: ["connectedAccounts"],
+  calendars: (params?: PaginationParams) => ["calendars", params],
+  calendarEvents: (params: CalendarEventsParams) => ["calendarEvents", params],
+  boards: ["boards"],
+  board: (id: string) => ["board", id],
+  boardEvents: (id: string, params?: DateRangeParams) => [
+    "boardEvents",
+    id,
+    params,
+  ],
+  sharedLinks: ["sharedLinks"],
+  sharedLink: (boardId: string) => ["sharedLink", boardId],
+  sharedLinkAnalytics: (boardId: string) => ["sharedLinkAnalytics", boardId],
+  publicBoard: (token: string, params?: DateRangeParams) => [
+    "publicBoard",
+    token,
+    params,
+  ],
 };
 
 // Auth Hooks
 export const useLogin = () => {
   return useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Login failed';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Login failed");
       toast.error(message);
     },
   });
@@ -48,8 +72,8 @@ export const useLogin = () => {
 export const useRegister = () => {
   return useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Registration failed';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Registration failed");
       toast.error(message);
     },
   });
@@ -65,14 +89,15 @@ export const useConnectedAccounts = () => {
 
 export const useInitiateOAuth = () => {
   return useMutation({
-    mutationFn: (provider: 'google' | 'microsoft') => oauthApi.initiateOAuth(provider),
+    mutationFn: (provider: "google" | "microsoft") =>
+      oauthApi.initiateOAuth(provider),
     onSuccess: (data) => {
       if (data.success && data.data) {
         window.location.href = data.data.authUrl;
       }
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'OAuth initiation failed';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "OAuth initiation failed");
       toast.error(message);
     },
   });
@@ -80,16 +105,16 @@ export const useInitiateOAuth = () => {
 
 export const useDisconnectAccount = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (accountId: string) => oauthApi.disconnectAccount(accountId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.connectedAccounts });
-      queryClient.invalidateQueries({ queryKey: ['calendars'] });
-      toast.success('Account disconnected successfully');
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      toast.success("Account disconnected successfully");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to disconnect account';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to disconnect account");
       toast.error(message);
     },
   });
@@ -97,15 +122,15 @@ export const useDisconnectAccount = () => {
 
 export const useRefreshToken = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (accountId: string) => oauthApi.refreshToken(accountId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.connectedAccounts });
-      toast.success('Token refreshed successfully');
+      toast.success("Token refreshed successfully");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to refresh token';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to refresh token");
       toast.error(message);
     },
   });
@@ -129,16 +154,20 @@ export const useCalendarEvents = (params: CalendarEventsParams) => {
 
 export const useToggleCalendarStatus = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (calendarId: string) => calendarApi.toggleCalendarStatus(calendarId),
+    mutationFn: (calendarId: string) =>
+      calendarApi.toggleCalendarStatus(calendarId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['calendars'] });
-      const status = data.data?.isActive ? 'activated' : 'deactivated';
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      const status = data.data?.isActive ? "activated" : "deactivated";
       toast.success(`Calendar ${status} successfully`);
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to toggle calendar status';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(
+        error,
+        "Failed to toggle calendar status",
+      );
       toast.error(message);
     },
   });
@@ -146,15 +175,16 @@ export const useToggleCalendarStatus = () => {
 
 export const useSyncAccountCalendars = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (accountId: string) => calendarApi.syncAccountCalendars(accountId),
+    mutationFn: (accountId: string) =>
+      calendarApi.syncAccountCalendars(accountId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['calendars'] });
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
       toast.success(`Synced ${data.data?.length || 0} calendars`);
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to sync calendars';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to sync calendars");
       toast.error(message);
     },
   });
@@ -162,17 +192,22 @@ export const useSyncAccountCalendars = () => {
 
 export const useSyncCalendarEvents = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ calendarId, params }: { calendarId: string; params?: DateRangeParams }) =>
-      calendarApi.syncCalendarEvents(calendarId, params),
+    mutationFn: ({
+      calendarId,
+      params,
+    }: {
+      calendarId: string;
+      params?: DateRangeParams;
+    }) => calendarApi.syncCalendarEvents(calendarId, params),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
-      queryClient.invalidateQueries({ queryKey: ['boardEvents'] });
+      queryClient.invalidateQueries({ queryKey: ["calendarEvents"] });
+      queryClient.invalidateQueries({ queryKey: ["boardEvents"] });
       toast.success(`Synced ${data.data?.length || 0} events`);
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to sync events';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to sync events");
       toast.error(message);
     },
   });
@@ -180,18 +215,20 @@ export const useSyncCalendarEvents = () => {
 
 export const useSyncAllUserData = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: () => calendarApi.syncAllUserData(),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['calendars'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
-      queryClient.invalidateQueries({ queryKey: ['boardEvents'] });
+      queryClient.invalidateQueries({ queryKey: ["calendars"] });
+      queryClient.invalidateQueries({ queryKey: ["calendarEvents"] });
+      queryClient.invalidateQueries({ queryKey: ["boardEvents"] });
       const result = data.data;
-      toast.success(`Synced ${result?.calendars.length || 0} calendars and ${result?.events.length || 0} events`);
+      toast.success(
+        `Synced ${result?.calendars.length || 0} calendars and ${result?.events.length || 0} events`,
+      );
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to sync data';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to sync data");
       toast.error(message);
     },
   });
@@ -223,15 +260,15 @@ export const useBoardEvents = (boardId: string, params?: DateRangeParams) => {
 
 export const useCreateBoard = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: CreateBoardRequest) => boardApi.createBoard(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.boards });
-      toast.success('Board created successfully');
+      toast.success("Board created successfully");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to create board';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to create board");
       toast.error(message);
     },
   });
@@ -239,17 +276,22 @@ export const useCreateBoard = () => {
 
 export const useUpdateBoard = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ boardId, data }: { boardId: string; data: UpdateBoardRequest }) =>
-      boardApi.updateBoard(boardId, data),
+    mutationFn: ({
+      boardId,
+      data,
+    }: {
+      boardId: string;
+      data: UpdateBoardRequest;
+    }) => boardApi.updateBoard(boardId, data),
     onSuccess: (_, { boardId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.boards });
       queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId) });
-      toast.success('Board updated successfully');
+      toast.success("Board updated successfully");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to update board';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to update board");
       toast.error(message);
     },
   });
@@ -257,15 +299,15 @@ export const useUpdateBoard = () => {
 
 export const useDeleteBoard = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (boardId: string) => boardApi.deleteBoard(boardId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.boards });
-      toast.success('Board deleted successfully');
+      toast.success("Board deleted successfully");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to delete board';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to delete board");
       toast.error(message);
     },
   });
@@ -273,18 +315,28 @@ export const useDeleteBoard = () => {
 
 export const useAddCalendarToBoard = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ boardId, data }: { boardId: string; data: AddCalendarToBoardRequest }) =>
-      boardApi.addCalendarToBoard(boardId, data),
+    mutationFn: ({
+      boardId,
+      data,
+    }: {
+      boardId: string;
+      data: AddCalendarToBoardRequest;
+    }) => boardApi.addCalendarToBoard(boardId, data),
     onSuccess: (_, { boardId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.boards });
       queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.boardEvents(boardId) });
-      toast.success('Calendar added to board');
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.boardEvents(boardId),
+      });
+      toast.success("Calendar added to board");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to add calendar to board';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(
+        error,
+        "Failed to add calendar to board",
+      );
       toast.error(message);
     },
   });
@@ -292,18 +344,28 @@ export const useAddCalendarToBoard = () => {
 
 export const useRemoveCalendarFromBoard = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ boardId, calendarId }: { boardId: string; calendarId: string }) =>
-      boardApi.removeCalendarFromBoard(boardId, calendarId),
+    mutationFn: ({
+      boardId,
+      calendarId,
+    }: {
+      boardId: string;
+      calendarId: string;
+    }) => boardApi.removeCalendarFromBoard(boardId, calendarId),
     onSuccess: (_, { boardId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.boards });
       queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.boardEvents(boardId) });
-      toast.success('Calendar removed from board');
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.boardEvents(boardId),
+      });
+      toast.success("Calendar removed from board");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to remove calendar from board';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(
+        error,
+        "Failed to remove calendar from board",
+      );
       toast.error(message);
     },
   });
@@ -311,20 +373,27 @@ export const useRemoveCalendarFromBoard = () => {
 
 export const useUpdateCalendarColor = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ boardId, calendarId, data }: { 
-      boardId: string; 
-      calendarId: string; 
-      data: UpdateCalendarColorRequest 
+    mutationFn: ({
+      boardId,
+      calendarId,
+      data,
+    }: {
+      boardId: string;
+      calendarId: string;
+      data: UpdateCalendarColorRequest;
     }) => boardApi.updateCalendarColor(boardId, calendarId, data),
     onSuccess: (_, { boardId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.boards });
       queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId) });
-      toast.success('Calendar color updated');
+      toast.success("Calendar color updated");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to update calendar color';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(
+        error,
+        "Failed to update calendar color",
+      );
       toast.error(message);
     },
   });
@@ -356,16 +425,18 @@ export const useSharedLinkAnalytics = (boardId: string) => {
 
 export const useCreateSharedLink = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (boardId: string) => shareApi.createSharedLink(boardId),
     onSuccess: (_, boardId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sharedLinks });
-      queryClient.invalidateQueries({ queryKey: queryKeys.sharedLink(boardId) });
-      toast.success('Shared link created');
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sharedLink(boardId),
+      });
+      toast.success("Shared link created");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to create shared link';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to create shared link");
       toast.error(message);
     },
   });
@@ -373,17 +444,24 @@ export const useCreateSharedLink = () => {
 
 export const useUpdateSharedLink = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ boardId, data }: { boardId: string; data: UpdateSharedLinkRequest }) =>
-      shareApi.updateSharedLink(boardId, data),
+    mutationFn: ({
+      boardId,
+      data,
+    }: {
+      boardId: string;
+      data: UpdateSharedLinkRequest;
+    }) => shareApi.updateSharedLink(boardId, data),
     onSuccess: (_, { boardId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sharedLinks });
-      queryClient.invalidateQueries({ queryKey: queryKeys.sharedLink(boardId) });
-      toast.success('Shared link updated');
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sharedLink(boardId),
+      });
+      toast.success("Shared link updated");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to update shared link';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to update shared link");
       toast.error(message);
     },
   });
@@ -391,16 +469,18 @@ export const useUpdateSharedLink = () => {
 
 export const useDeleteSharedLink = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (boardId: string) => shareApi.deleteSharedLink(boardId),
     onSuccess: (_, boardId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sharedLinks });
-      queryClient.invalidateQueries({ queryKey: queryKeys.sharedLink(boardId) });
-      toast.success('Shared link deleted');
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sharedLink(boardId),
+      });
+      toast.success("Shared link deleted");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to delete shared link';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to delete shared link");
       toast.error(message);
     },
   });
@@ -408,16 +488,18 @@ export const useDeleteSharedLink = () => {
 
 export const useRegenerateToken = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (boardId: string) => shareApi.regenerateToken(boardId),
     onSuccess: (_, boardId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sharedLinks });
-      queryClient.invalidateQueries({ queryKey: queryKeys.sharedLink(boardId) });
-      toast.success('Token regenerated');
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.sharedLink(boardId),
+      });
+      toast.success("Token regenerated");
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.error || 'Failed to regenerate token';
+    onError: (error: unknown) => {
+      const message = getApiErrorMessage(error, "Failed to regenerate token");
       toast.error(message);
     },
   });

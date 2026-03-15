@@ -327,7 +327,7 @@ export class ShareService {
         updatedAt: link.updatedAt,
       },
       boardName: link.board.name,
-      boardDescription: link.board.description,
+      boardDescription: link.board.description ?? undefined,
     }));
   }
 

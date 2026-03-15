@@ -1,5 +1,5 @@
 // API Types - Matching backend validation schemas
-export type Provider = 'google' | 'microsoft';
+export type Provider = "google" | "microsoft";
 
 // Base types
 export interface ApiResponse<T> {
@@ -7,7 +7,7 @@ export interface ApiResponse<T> {
   data?: T;
   message?: string;
   error?: string;
-  details?: any;
+  details?: unknown;
 }
 
 export interface PaginatedResponse<T> {
@@ -224,6 +224,7 @@ export interface DateRangeParams {
   endDate?: string;
 }
 
-export interface CalendarEventsParams extends PaginationParams, DateRangeParams {
+export interface CalendarEventsParams
+  extends PaginationParams, DateRangeParams {
   calendarIds: string[];
 }
