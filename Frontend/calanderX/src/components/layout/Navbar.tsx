@@ -1,8 +1,8 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Calendar, LogOut, Settings, User } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../ui/Button';
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { LogOut, Settings, User } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+import { Button } from "../ui/Button";
 
 export const Navbar: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -10,18 +10,23 @@ export const Navbar: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
     <nav className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-20">
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <Calendar className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">CalendarX</span>
+              {/* <Calendar className="h-8 w-8 text-blue-600" /> */}
+              <img
+                src="https://ik.imagekit.io/zisapgd2g/CalendarX-removebg-preview.png"
+                alt="calanderx logo"
+                className="h-40 w-40 object-contain"
+              />
+              {/* <span className="text-xl font-bold text-gray-900">CalendarX</span> */}
             </Link>
           </div>
 
@@ -65,14 +70,14 @@ export const Navbar: React.FC = () => {
                     {user?.name || user?.email}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Link to="/settings">
                     <Button variant="ghost" size="sm">
                       <Settings className="h-4 w-4" />
                     </Button>
                   </Link>
-                  
+
                   <Button variant="ghost" size="sm" onClick={handleLogout}>
                     <LogOut className="h-4 w-4" />
                   </Button>

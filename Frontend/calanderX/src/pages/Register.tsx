@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { isAxiosError } from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { Calendar, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -64,9 +64,14 @@ export const Register: React.FC = () => {
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center">
-            <Calendar className="h-12 w-12 text-blue-600" />
+            {/* <Calendar className="h-12 w-12 text-blue-600" /> */}
+            <img
+              src="https://ik.imagekit.io/zisapgd2g/CalendarX-removebg-preview.png"
+              alt="calanderx logo"
+              className="h-60 w-60 object-contain"
+            />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-2 text-3xl font-extrabold text-gray-900">
             Create your CalendarX account
           </h2>
           <p className="mt-2 text-sm text-gray-600">
